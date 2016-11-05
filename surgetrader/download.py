@@ -3,6 +3,7 @@ import json
 import logging
 import pprint
 from datetime import datetime
+import random
 
 from db import db
 
@@ -16,12 +17,14 @@ with open("secrets.json") as secrets_file:
 
 markets = b.get_market_summaries()
 for market in markets['result']:
-    if market['MarketName'] != 'BTC-SLG':
-        continue
+
+    tmp = market['Low'] + random.uniform(-2, 2) * market['Low']
 
     id = db.market.insert(
         name=market['MarketName'],
-        low=market['Low'],
+        low=tmp,
         timestamp=datetime.now()
         )
-    print id
+
+
+db.commit()
