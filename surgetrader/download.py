@@ -1,28 +1,27 @@
-from bittrex.bittrex import Bittrex
-import json
+#!/usr/bin/env python
+
+
 import logging
 import pprint
 from datetime import datetime
-import random
 
 from db import db
-
+import mybittrex
 
 logger = logging.getLogger(__name__)
 
-
-with open("secrets.json") as secrets_file:
-    secrets = json.load(secrets_file)
-    b = Bittrex(secrets['key'], secrets['secret'])
+b = mybittrex.make_bittrex()
 
 markets = b.get_market_summaries()
-for market in markets['result']:
 
-    tmp = market['Low'] + random.uniform(-2, 2) * market['Low']
+with open("markets.json", "w") as markets_file:
+    markets_file.write(pprint.pformat(markets['result']))
+
+for market in markets['result']:
 
     id = db.market.insert(
         name=market['MarketName'],
-        low=tmp,
+        ask=market['Ask'],
         timestamp=datetime.now()
         )
 

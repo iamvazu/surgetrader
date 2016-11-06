@@ -1,4 +1,4 @@
-from bittrex.bittrex import Bittrex
+from bittrex.bittrex import Bittrex, SELL_ORDERBOOK
 import json
 import logging
 import pprint
@@ -21,11 +21,4 @@ def percent_gain(high, low):
         percent_gain = 0
     return percent_gain
 
-markets = b.get_market_summaries()
-for market in markets['result']:
-    pprint.pprint(market)
-    market['PercentGain'] = percent_gain(market['High'], market['Low'])
-    print "\t", market['MarketName'], market['PrevDay']
-
-for market in sorted(markets['result'], key=lambda e: e['PercentGain']):
-    print market['PercentGain'], market['MarketName'], market['High'], market['Low'], market['PrevDay']
+pprint.pprint(b.get_orderbook('BTC-SLING', SELL_ORDERBOOK))
