@@ -17,3 +17,12 @@ buy = db.define_table(
     Field('selling_price', type='double'),
     Field('amount', type='double'),
     )
+
+picks = db.define_table(
+    'picks',
+    Field('market'),
+    Field('old_price', type='double'),
+    Field('new_price', type='double'),
+    Field('gain', type='double'),
+    Field('timestamp', type='datetime', default=datetime.now)
+    )

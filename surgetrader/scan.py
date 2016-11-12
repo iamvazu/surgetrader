@@ -14,6 +14,8 @@ from bittrex.bittrex import SELL_ORDERBOOK
 logger = logging.getLogger(__name__)
 b = mybittrex.make_bittrex()
 
+ignore = 'BTC-ZEC BTC-ETH BTC-ETH'
+
 
 def percent_gain(new, old):
     increase = (new - old)
@@ -28,15 +30,19 @@ def analyze_gain():
 
     recent = collections.defaultdict(list)
 
+    # take the 2 most recent pricings for each market and store in the
+    # list 'recent'
     for row in db().select(
         db.market.ALL,
         orderby=~db.market.timestamp
     ):
-        # print row
+        if row.name in ignore:
+            print "Skipping" + row.name
+            continue
         if len(recent[row.name]) < 2:
             recent[row.name].append(row)
 
-    print "recent is {0} entries".format(len(recent.keys()))
+    print "Number of markets = {0}".format(len(recent.keys()))
     # pprint.pprint(recent)
 
     gain = list()
@@ -56,8 +62,15 @@ def analyze_gain():
     gain = sorted(gain, key=lambda r: r[1], reverse=True)
     for i, _gain in enumerate(gain, start=1):
         print "{0}: {1}".format(i, pprint.pformat(_gain))
+        db.picks.insert(
+            market=_gain[0],
+            old_price=_gain[2],
+            new_price=_gain[3],
+            gain=_gain[1]
+        )
         if i > 10:
             break
+    db.commit()
     return gain
 
 
