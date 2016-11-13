@@ -14,7 +14,8 @@ from bittrex.bittrex import SELL_ORDERBOOK
 logger = logging.getLogger(__name__)
 b = mybittrex.make_bittrex()
 
-ignore = 'BTC-ZEC BTC-ETH BTC-ETH'
+ignore = 'BTC-ZEC BTC-ETH BTC-ETH BTC-MTR'
+max_orders_per_market = 2
 
 
 def percent_gain(new, old):
@@ -24,6 +25,14 @@ def percent_gain(new, old):
     else:
         percent_gain = 0
     return percent_gain
+
+
+def number_of_open_orders_in(market):
+    orders = list()
+    for order in b.get_open_orders(market)['result']:
+        if order['Exchange'] == market:
+            orders.append(order)
+    return len(orders)
 
 
 def analyze_gain():
@@ -36,9 +45,6 @@ def analyze_gain():
         db.market.ALL,
         orderby=~db.market.timestamp
     ):
-        if row.name in ignore:
-            print "Skipping" + row.name
-            continue
         if len(recent[row.name]) < 2:
             recent[row.name].append(row)
 
@@ -48,6 +54,18 @@ def analyze_gain():
     gain = list()
 
     for name, rows in recent.iteritems():
+        if row.name in ignore:
+            print row.name + "is on ignore list. Skipping."
+            continue
+
+        if number_of_open_orders_in(row.name) == max_orders_per_market:
+            print row.name + "has max number of open orders. Skipping."
+            continue
+
+        if rows[0].ask < 100e-8:
+            print row.name + "is a single or double satoshi coin. Skipping."
+            continue
+
         gain.append(
             (
                 name,

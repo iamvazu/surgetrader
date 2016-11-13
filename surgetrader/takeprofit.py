@@ -32,10 +32,15 @@ logger = logging.getLogger(__name__)
 b = mybittrex.make_bittrex()
 
 
+def single_and_double_satoshi_scalp(price):
+    # forget it - huge sell walls in these low-satoshi coins!
+    return price + 2e-8
+
+
 def _takeprofit(percent, row):
     entry = row.purchase_price
-    x_percent = percent / 100.0
 
+    x_percent = percent / 100.0
     tp = entry * x_percent + entry
 
     print("On an entry of {0:f}, TP={1:.8f} for a {2} percent gain".format(
