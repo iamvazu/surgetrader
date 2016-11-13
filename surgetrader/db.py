@@ -9,6 +9,8 @@ market = db.define_table(
     Field('ask', type='double'),
     Field('timestamp', type='datetime', default=datetime.now)
     )
+db.executesql('CREATE INDEX IF NOT EXISTS tidx ON market (timestamp);')
+db.executesql('CREATE INDEX IF NOT EXISTS m_n_idx ON market (name);')
 
 buy = db.define_table(
     'buy',
@@ -17,6 +19,7 @@ buy = db.define_table(
     Field('selling_price', type='double'),
     Field('amount', type='double'),
     )
+db.executesql('CREATE INDEX IF NOT EXISTS sidx ON buy (selling_price);')
 
 picks = db.define_table(
     'picks',

@@ -41,10 +41,14 @@ def analyze_gain():
 
     # take the 2 most recent pricings for each market and store in the
     # list 'recent'
+
+    # having_query = db.market.
     for row in db().select(
         db.market.ALL,
-        orderby=~db.market.timestamp
+        orderby=~db.market.timestamp,
+            # groupby=db.market.name
     ):
+        # print row
         if len(recent[row.name]) < 2:
             recent[row.name].append(row)
 
@@ -53,25 +57,25 @@ def analyze_gain():
 
     gain = list()
 
-    for name, rows in recent.iteritems():
-        if row.name in ignore:
-            print row.name + "is on ignore list. Skipping."
+    for name, row in recent.iteritems():
+        if name in ignore:
+            print name + "is on ignore list. Skipping."
             continue
 
-        if number_of_open_orders_in(row.name) == max_orders_per_market:
-            print row.name + "has max number of open orders. Skipping."
+        if number_of_open_orders_in(name) >= max_orders_per_market:
+            print name + "has max number of open orders. Skipping."
             continue
 
-        if rows[0].ask < 100e-8:
-            print row.name + "is a single or double satoshi coin. Skipping."
+        if row[0].ask < 100e-8:
+            print name + "is a single or double satoshi coin. Skipping."
             continue
 
         gain.append(
             (
                 name,
-                percent_gain(rows[0].ask, rows[1].ask),
-                rows[1].ask,
-                rows[0].ask,
+                percent_gain(row[0].ask, row[1].ask),
+                row[1].ask,
+                row[0].ask,
                 'https://bittrex.com/Market/Index?MarketName={0}'.format(name),
             )
         )
