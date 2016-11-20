@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from retry import retry
 # core
 import logging
 from datetime import datetime
@@ -52,6 +53,7 @@ def _takeprofit(percent, row):
     row.update_record(selling_price=tp)
 
 
+@retry()
 def takeprofit(p):
 
     print "Finding takeprofit rows..."

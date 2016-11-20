@@ -5,7 +5,7 @@ import argh
 import collections
 import logging
 import pprint
-
+from retry import retry
 from db import db
 import mybittrex
 from bittrex.bittrex import SELL_ORDERBOOK
@@ -14,7 +14,8 @@ from bittrex.bittrex import SELL_ORDERBOOK
 logger = logging.getLogger(__name__)
 b = mybittrex.make_bittrex()
 
-ignore = 'BTC-ZEC BTC-ETH BTC-ETH BTC-MTR'
+ignore_by_in = 'BTC-ZEC BTC-ETH BTC-ETH BTC-MTR BTC-UTC'
+ignore_by_find = 'ETH-'
 max_orders_per_market = 2
 
 
@@ -29,10 +30,16 @@ def percent_gain(new, old):
 
 def number_of_open_orders_in(market):
     orders = list()
-    for order in b.get_open_orders(market)['result']:
-        if order['Exchange'] == market:
-            orders.append(order)
-    return len(orders)
+    oo = b.get_open_orders(market)['result']
+    if oo:
+        # pprint.pprint(oo)
+        for order in oo:
+            if order['Exchange'] == market:
+                orders.append(order)
+        return len(orders)
+    else:
+        return 0
+
 
 
 def analyze_gain():
@@ -45,12 +52,14 @@ def analyze_gain():
     # having_query = db.market.
     for row in db().select(
         db.market.ALL,
-        orderby=~db.market.timestamp,
-            # groupby=db.market.name
+        groupby=db.market.name
     ):
-        # print row
-        if len(recent[row.name]) < 2:
-            recent[row.name].append(row)
+        for market_row in db(db.market.name == row.name).select(
+                db.market.ALL,
+                orderby=~db.market.timestamp,
+                limitby=(0, 2)
+        ):
+            recent[market_row.name].append(market_row)
 
     print "Number of markets = {0}".format(len(recent.keys()))
     # pprint.pprint(recent)
@@ -58,16 +67,21 @@ def analyze_gain():
     gain = list()
 
     for name, row in recent.iteritems():
-        if name in ignore:
-            print name + "is on ignore list. Skipping."
+        # print name, row
+        if name in ignore_by_in:
+            print "Ignore by in: " + name
+            continue
+
+        if name.find(ignore_by_find) > -1:
+            print 'Ignore by find: ' + name
             continue
 
         if number_of_open_orders_in(name) >= max_orders_per_market:
-            print name + "has max number of open orders. Skipping."
+            print 'Max open orders: ' + name
             continue
 
         if row[0].ask < 100e-8:
-            print name + "is a single or double satoshi coin. Skipping."
+            print 'Single or double satoshi coin: ' + name
             continue
 
         gain.append(
@@ -124,6 +138,7 @@ def rate_for(mkt, btc):
     return order['Rate'], coin_amount
 
 
+@retry()
 def record_buy(mkt, rate, amount):
     db.buy.insert(market=mkt, purchase_price=rate, amount=amount)
     db.commit()
