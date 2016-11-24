@@ -38,14 +38,19 @@ def single_and_double_satoshi_scalp(price):
     return price + 2e-8
 
 
-def _takeprofit(percent, row):
-    entry = row.purchase_price
+def __takeprofit(entry, gain):
 
-    x_percent = percent / 100.0
+    x_percent = gain / 100.0
     tp = entry * x_percent + entry
 
     print("On an entry of {0:f}, TP={1:.8f} for a {2} percent gain".format(
-        entry, tp, percent))
+        entry, tp, gain))
+
+    return tp
+
+def _takeprofit(percent, row):
+
+    tp = __takeprofit(entry=row.purchase_price, gain=percent)
 
     r = b.sell_limit(row.market, row.amount, tp)
     pprint.pprint(r)
@@ -64,9 +69,12 @@ def takeprofit(p):
     db.commit()
 
 
-def main(percent=10):
+def main(percent=1, dry_run=False, price=0.0):
 
-    takeprofit(percent)
+    if price:
+        __takeprofit(entry=price, gain=percent)
+    else:
+        takeprofit(percent)
 
 if __name__ == '__main__':
     argh.dispatch_command(main)
