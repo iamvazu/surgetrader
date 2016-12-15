@@ -42,9 +42,13 @@ def number_of_open_orders_in(market):
 
 
 
-def analyze_gain():
+def analyze_gain(min_volume=0):
 
     recent = collections.defaultdict(list)
+
+    markets = b.get_market_summaries(by_market=True)
+
+    pprint.pprint(markets)
 
     # take the 2 most recent pricings for each market and store in the
     # list 'recent'
@@ -67,7 +71,17 @@ def analyze_gain():
     gain = list()
 
     for name, row in recent.iteritems():
-        # print name, row
+
+        print name
+
+        try:
+            if min_volume and markets[name]['BaseVolume'] < min_volume:
+                print "Ignoring on low volume {0}".format(markets[name])
+                continue
+        except KeyError:
+            print "KeyError locating " + name
+            continue
+
         if name in ignore_by_in:
             print "Ignore by in: " + name
             continue
@@ -164,10 +178,10 @@ def _buycoin(mkt, btc):
     pprint.pprint(r)
 
 
-def buycoin(n):
+def buycoin(n, min_volume=0):
     "Buy top N cryptocurrencies."
 
-    top = analyze_gain()[:n]
+    top = analyze_gain(min_volume=min_volume)[:n]
     print 'TOP {0}: {1}'.format(n, top)
     avail = available_btc()
     for market in top:
@@ -175,13 +189,13 @@ def buycoin(n):
         _buycoin(market[0], avail)
 
 
-def main(my_btc=False, buy=0):
+def main(my_btc=False, buy=0, min_volume=1):
     if my_btc:
         report_btc_balance()
     elif buy:
-        buycoin(buy)
+        buycoin(buy, min_volume)
     else:
-        analyze_gain()
+        analyze_gain(min_volume)
         available_btc()
 
 if __name__ == '__main__':

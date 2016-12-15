@@ -73,9 +73,11 @@ def analyze_spread():
             )
         )
 
-    markets.sort(key=lambda m: (m.spread, -m.volume,))
+    markets.sort(key=lambda m: (-m.volume, m.spread,))
 
     pprint.pprint(markets)
+
+    return markets
 
 
 def report_btc_balance():
