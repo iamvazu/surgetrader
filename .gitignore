@@ -2,6 +2,7 @@
 
 *~
 
+*.key
 secrets.json
 markets.json
 *.table

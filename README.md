@@ -10,6 +10,15 @@ Trade on surges detected at BitTrex
 Install python-bittrex from this github instead of PyPi.
 `pip install -r requirements.txt`
 
+# Configuration
+
+in the `src` directory, `bittrex.ini` should have key and secret in it like so
+
+    [api]
+    key = asdfa8asdf8asdfasdf
+    secret = 99asdfn8sdfjasd
+
+# Usage
 
 # Earning Potential
 
