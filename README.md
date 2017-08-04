@@ -3,7 +3,16 @@ Trade on surges detected at BitTrex
 
 # Script description
 
+Have you ever woken up, logged into BitTrex,  and saw something like this:
+![](https://i.imgur.com/OHvlAAM.png)
 
+and then you asked yourself: "what could I do to wake up to profits like this".
+
+If so, then SurgeTrader is for you!!!
+
+## How it works
+
+SurgeTrader allows you to find what market(s) has had the greatest % growth over a period of time. It presumes that the coin with the greatest % gain will go up even more in the near or distant future.
 
 # Installation
 
