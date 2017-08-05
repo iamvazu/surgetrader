@@ -1,21 +1,26 @@
 #!/usr/bin/env python
 
-
-import argh
+# core
 import collections
 import logging
 import pprint
+
+# 3rd party
+import argh
+import ConfigParser
 from retry import retry
+
+# local
 from db import db
 import mybittrex
 from bittrex.bittrex import SELL_ORDERBOOK
 
 
 logger = logging.getLogger(__name__)
-b = mybittrex.make_bittrex()
 
-ignore_by_in = 'BTC-ZEC BTC-ETH BTC-ETH BTC-MTR BTC-UTC'
-ignore_by_find = 'ETH-'
+
+ignore_by_in = 'BTC-MUE BTC-UTC'
+ignore_by_find = 'ETH- USDT-'.split()
 max_orders_per_market = 2
 
 
@@ -28,7 +33,7 @@ def percent_gain(new, old):
     return percent_gain
 
 
-def number_of_open_orders_in(market):
+def number_of_open_orders_in(b, market):
     orders = list()
     oo = b.get_open_orders(market)['result']
     if oo:
@@ -42,7 +47,7 @@ def number_of_open_orders_in(market):
 
 
 
-def analyze_gain(min_volume=0):
+def analyze_gain(b, min_volume=0):
 
     recent = collections.defaultdict(list)
 
@@ -83,14 +88,19 @@ def analyze_gain(min_volume=0):
             continue
 
         if name in ignore_by_in:
-            print "Ignore by in: " + name
+            print "\tIgnore by in: " + name
             continue
 
-        if name.find(ignore_by_find) > -1:
-            print 'Ignore by find: ' + name
+        leave = False
+        for f in ignore_by_find:
+            if name.find(f) > -1:
+                print '\tIgnore by find: ' + name
+                leave = True
+
+        if leave:
             continue
 
-        if number_of_open_orders_in(name) >= max_orders_per_market:
+        if number_of_open_orders_in(b, name) >= max_orders_per_market:
             print 'Max open orders: ' + name
             continue
 
@@ -124,20 +134,20 @@ def analyze_gain(min_volume=0):
     return gain
 
 
-def report_btc_balance():
+def report_btc_balance(b):
     bal = b.get_balance('BTC')
     pprint.pprint(bal)
     return bal['result']
 
 
-def available_btc():
-    bal = report_btc_balance()
+def available_btc(b):
+    bal = report_btc_balance(b)
     avail = bal['Available']
     print "Available btc={0}".format(avail)
     return avail
 
 
-def rate_for(mkt, btc):
+def rate_for(b, mkt, btc):
     "Return the rate that works for a particular amount of BTC."
 
     coin_amount = 0
@@ -152,48 +162,68 @@ def rate_for(mkt, btc):
     return order['Rate'], coin_amount
 
 
-@retry()
-def record_buy(mkt, rate, amount):
-    db.buy.insert(market=mkt, purchase_price=rate, amount=amount)
-    db.commit()
 
+def get_takeprofit(c):
+    p = c.get('takeprofit', 'percent')
+    return int(p)
 
-def _buycoin(mkt, btc):
+def profitable_rate(entry, gain):
+
+    x_percent = gain / 100.0
+    tp = entry * x_percent + entry
+
+    print("On an entry of {0:.8f}, TP={1:.8f} for a {2} percent gain".format(
+        entry, tp, gain))
+
+    return tp
+
+def _buycoin(c, b, mkt, btc):
     "Buy into market using BTC. Current allocately 2% of BTC to each trade."
 
     print "I have {0} BTC available.".format(btc)
 
-    btc *= 0.02
+    btc *= 0.04
 
     print "I will trade {0} BTC.".format(btc)
 
-    rate, amount_of_coin = rate_for(mkt, btc)
+    rate, amount_of_coin = rate_for(b, mkt, btc)
 
-    print "I get {0} unit of {1} at the rate of {2} BTC per coin.".format(
+    print "I get {0} units of {1} at the rate of {2:.8f} BTC per coin.".format(
         amount_of_coin, mkt, rate)
 
     r = b.buy_limit(mkt, amount_of_coin, rate)
     if r['success']:
-        record_buy(mkt, rate, amount_of_coin)
-    pprint.pprint(r)
+        print "Buy was a success = {}".format(r)
+        takeprofit = get_takeprofit(c)
+        new_rate = profitable_rate(rate, takeprofit)
+        "Let sell  b.sell_limit(mkt, amount_of_coin, new_rate)"
+        rs = b.sell_limit(mkt, amount_of_coin, new_rate)
+        pprint.pprint(rs)
 
 
-def buycoin(n, min_volume=0):
+def buycoin(c, b, n, min_volume=0):
     "Buy top N cryptocurrencies."
 
-    top = analyze_gain(min_volume=min_volume)[:n]
+    top = analyze_gain(b, min_volume=min_volume)[:n]
     print 'TOP {0}: {1}'.format(n, top)
-    avail = available_btc()
+    avail = available_btc(b)
     for market in top:
         print 'market: {0}'.format(market)
-        _buycoin(market[0], avail)
+        _buycoin(c, b, market[0], avail)
 
 
-def main(my_btc=False, buy=0, min_volume=1):
+def main(ini, my_btc=False, buy=0, min_volume=1):
+
+    config_file = ini
+    config = ConfigParser.RawConfigParser()
+    config.read(config_file)
+
+    b = mybittrex.make_bittrex(config)
+
     if my_btc:
         report_btc_balance()
     elif buy:
-        buycoin(buy, min_volume)
+        buycoin(config, b, buy, min_volume)
     else:
         analyze_gain(min_volume)
         available_btc()

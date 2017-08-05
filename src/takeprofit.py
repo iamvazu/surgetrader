@@ -30,7 +30,7 @@ two_percent = 2.0 / 100.0
 
 
 logger = logging.getLogger(__name__)
-b = mybittrex.make_bittrex()
+
 
 
 def single_and_double_satoshi_scalp(price):
@@ -69,12 +69,15 @@ def takeprofit(p):
     db.commit()
 
 
-def main(percent=1, dry_run=False, price=0.0):
+def main(ini, dry_run=False):
 
-    if price:
-        __takeprofit(entry=price, gain=percent)
-    else:
-        takeprofit(percent)
+    config_file = ini
+    config = ConfigParser.RawConfigParser()
+    config.read(config_file)
+
+    b = mybittrex.make_bittrex(config)
+    percent = int(config.get('takeprofit', 'percent'))
+    takeprofit(percent)
 
 if __name__ == '__main__':
     argh.dispatch_command(main)

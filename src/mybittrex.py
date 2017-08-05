@@ -7,13 +7,9 @@ import ConfigParser
 from bittrex.bittrex import Bittrex
 
 
-def make_bittrex():
-    config_file = 'bittrex.ini'
-    config = ConfigParser.RawConfigParser()
-    config.read(config_file)
+def make_bittrex(config):
 
-    with open("secrets.json") as secrets_file:
-        secrets = json.load(secrets_file)
-        b = Bittrex(config.get('api', 'key'), config.get('api', 'secret'))
+
+    b = Bittrex(config.get('api', 'key'), config.get('api', 'secret'))
 
     return b

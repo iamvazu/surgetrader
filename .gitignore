@@ -3,6 +3,7 @@
 *~
 
 *.key
+*.ini
 secrets.json
 markets.json
 *.table
